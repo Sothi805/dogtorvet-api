@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: dogtorvet-fastapi
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: MONGODB_URL
+        value: mongodb+srv://veths:LKdKLw6NdBTpOW5e@cluster0.cg8et.mongodb.net/dogtorvet?retryWrites=true&w=majority
+      - key: DATABASE_NAME
+        value: dogtorvet
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates secure secret
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: APP_NAME
+        value: DogTorVet API
+      - key: APP_VERSION
+        value: 1.0.0
+      - key: DEBUG
+        value: false
+      - key: ENVIRONMENT
+        value: production
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: UPLOAD_FOLDER
+        value: uploads
+      # Root User Configuration
+      - key: ROOT_USER_EMAIL
+        value: admin@dogtorvet.com
+      - key: ROOT_USER_PASSWORD
+        generateValue: true  # Render auto-generates secure password
+      - key: ROOT_USER_FIRST_NAME
+        value: System
+      - key: ROOT_USER_LAST_NAME
+        value: Administrator
+      - key: ROOT_USER_PHONE
+        value: "+1234567890"
+      - key: ROOT_USER_SPECIALIZATION
+        value: System Administration
+      # Server Configuration
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PORT
+        value: "8000"
+      # CORS Configuration
+      - key: ALLOWED_ORIGINS
+        value: "http://localhost:3000,https://dogtorvetservices.onrender.com" 
