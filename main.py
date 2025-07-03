@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -17,20 +18,34 @@ from routes import (
     allergies_router, vaccinations_router, audit_logs_router
 )
 
-# Create rate limiter
+# ✅ Exception handler (only this one)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler for unhandled exceptions"""
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+
+    if settings.debug:
+        raise exc
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
+# ✅ Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
+# ✅ Lifespan setup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
-    # Startup
     logger.info("Starting DogTorVet API...")
     await connect_to_mongo()
     
     if is_mongodb_available():
         logger.success("Connected to MongoDB")
         
-        # Create database indexes
         try:
             db = get_database()
             await create_indexes(db)
@@ -38,7 +53,6 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Index creation error (non-critical): {str(e)}")
         
-        # Run database seeding (only root user)
         try:
             await seed_root_user()
             logger.success("Root user seeding completed")
@@ -48,15 +62,14 @@ async def lifespan(app: FastAPI):
         logger.error("MongoDB not available - API will run with limited functionality")
     
     yield
-    
-    # Shutdown
+
     logger.info("Shutting down DogTorVet API...")
     await close_mongo_connection()
     if is_mongodb_available():
         logger.success("Disconnected from MongoDB")
 
 
-# Create FastAPI application
+# ✅ FastAPI app creation
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -64,16 +77,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add rate limiter to app
+# ✅ Middleware
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Add CORS middleware with explicit origins
+# ✅ CORS middleware (correct origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://dogtorvetservices.onrender.com",
-        "http://localhost:5173", 
+        "http://localhost:5173",
         "http://127.0.0.1:5173"
     ],
     allow_credentials=True,
@@ -82,7 +95,7 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-# Include all routers
+# ✅ Route includes
 app.include_router(auth_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
 app.include_router(clients_router, prefix="/api")
@@ -99,10 +112,9 @@ app.include_router(allergies_router, prefix="/api")
 app.include_router(vaccinations_router, prefix="/api")
 app.include_router(audit_logs_router, prefix="/api")
 
-
+# ✅ Root & Health
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
         "message": "Welcome to DogTorVet API",
         "version": settings.app_version,
@@ -111,10 +123,8 @@ async def root():
         "mongodb_status": "connected" if is_mongodb_available() else "disconnected"
     }
 
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "healthy",
         "message": "DogTorVet API is running",
@@ -123,24 +133,7 @@ async def health_check():
         "environment": settings.environment
     }
 
-
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler for unhandled exceptions"""
-    # Log the error
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    
-    if settings.debug:
-        raise exc
-    
-    # Return generic error in production
-    return HTTPException(
-        status_code=500,
-        detail="Internal server error"
-    )
-
-
+# ✅ Run the app (for local dev)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -148,4 +141,4 @@ if __name__ == "__main__":
         host=settings.host,
         port=settings.port,
         reload=settings.debug
-    ) 
+    )
