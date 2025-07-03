@@ -18,41 +18,20 @@ from routes import (
     allergies_router, vaccinations_router, audit_logs_router
 )
 
-# ✅ Exception handler (only this one)
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler for unhandled exceptions"""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-
-    if settings.debug:
-        raise exc
-
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"},
-    )
-
-
-# ✅ Rate limiter
-limiter = Limiter(key_func=get_remote_address)
-
 # ✅ Lifespan setup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan events"""
     logger.info("Starting DogTorVet API...")
     await connect_to_mongo()
-    
+
     if is_mongodb_available():
         logger.success("Connected to MongoDB")
-        
         try:
             db = get_database()
             await create_indexes(db)
             logger.success("Database indexes created")
         except Exception as e:
             logger.warning(f"Index creation error (non-critical): {str(e)}")
-        
         try:
             await seed_root_user()
             logger.success("Root user seeding completed")
@@ -60,7 +39,7 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Seeding error (non-critical): {str(e)}")
     else:
         logger.error("MongoDB not available - API will run with limited functionality")
-    
+
     yield
 
     logger.info("Shutting down DogTorVet API...")
@@ -68,8 +47,7 @@ async def lifespan(app: FastAPI):
     if is_mongodb_available():
         logger.success("Disconnected from MongoDB")
 
-
-# ✅ FastAPI app creation
+# ✅ Create FastAPI app early
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -77,11 +55,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# ✅ Global exception handler AFTER app is created
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    if settings.debug:
+        raise exc
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 # ✅ Middleware
+limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ✅ CORS middleware (correct origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -90,12 +76,12 @@ app.add_middleware(
         "http://127.0.0.1:5173"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
 
-# ✅ Route includes
+# ✅ Routes
 app.include_router(auth_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
 app.include_router(clients_router, prefix="/api")
@@ -112,7 +98,7 @@ app.include_router(allergies_router, prefix="/api")
 app.include_router(vaccinations_router, prefix="/api")
 app.include_router(audit_logs_router, prefix="/api")
 
-# ✅ Root & Health
+# ✅ Health check routes
 @app.get("/")
 async def root():
     return {
@@ -133,12 +119,7 @@ async def health_check():
         "environment": settings.environment
     }
 
-# ✅ Run the app (for local dev)
+# ✅ Local dev entrypoint
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.debug
-    )
+    uvicorn.run("main:app", host=settings.host, port=settings.port, reload=settings.debug)
