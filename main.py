@@ -55,6 +55,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://dogtorvetservices.onrender.com",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 # ✅ Global exception handler AFTER app is created
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -68,18 +80,6 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://dogtorvetservices.onrender.com",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
 
 # ✅ Routes
 app.include_router(auth_router, prefix="/api")
