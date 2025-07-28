@@ -67,8 +67,20 @@ async def get_appointments(
             start_date = datetime.fromisoformat(appointment_date_from.replace('Z', '+00:00'))
             end_date = datetime.fromisoformat(appointment_date_to.replace('Z', '+00:00'))
             filters["appointment_date"] = {"$gte": start_date, "$lte": end_date}
+            print(f"🔍 Date filter: {appointment_date_from} to {appointment_date_to}")
+            print(f"🔍 Converted dates: {start_date} to {end_date}")
         
         print(f"🔎 Filters for get_appointments: {filters}")
+        
+        # Debug: Check total appointments in database
+        total_all_appointments = await collection.count_documents({})
+        print(f"🔍 Total appointments in database (no filters): {total_all_appointments}")
+        
+        # Debug: Show a few appointments without filters
+        sample_appointments = await collection.find({}).limit(3).to_list(length=None)
+        print(f"🔍 Sample appointments in database:")
+        for i, appt in enumerate(sample_appointments):
+            print(f"  - {i+1}: {appt.get('appointment_date')} - {appt.get('appointment_status')} - {appt.get('client_id')}")
         
         # Calculate skip from page and per_page
         skip = (page - 1) * per_page
@@ -76,6 +88,7 @@ async def get_appointments(
         
         # Get total count for pagination
         total_count = await collection.count_documents(filters)
+        print(f"🔍 Total appointments found with filters: {total_count}")
         
         # Get appointments with pagination
         cursor = collection.find(filters)
@@ -88,7 +101,11 @@ async def get_appointments(
         cursor = cursor.skip(skip).limit(limit)
         
         appointments = await cursor.to_list(length=None)
-        print(f"🔎 Raw appointments from DB: {appointments}")
+        print(f"🔎 Raw appointments from DB: {len(appointments)} appointments")
+        
+        # Debug: Show first few appointments
+        for i, appt in enumerate(appointments[:3]):
+            print(f"🔍 Appointment {i+1}: {appt.get('appointment_date')} - {appt.get('appointment_status')}")
         
         # Prepare related collections
         clients_collection = database.get_collection(COLLECTIONS["clients"])

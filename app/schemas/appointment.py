@@ -8,8 +8,6 @@ from .base import BaseDBSchema, BaseCreateSchema, BaseUpdateSchema, BaseResponse
 class AppointmentStatus(str, Enum):
     """Appointment status enumeration"""
     SCHEDULED = "scheduled"
-    CONFIRMED = "confirmed"
-    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     NO_SHOW = "no_show"
