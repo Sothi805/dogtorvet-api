@@ -1,285 +1,155 @@
-## DogTorVet FastAPI Backend
+# DogTorVet API - Backend
 
-A modern, high-performance veterinary management system API built with FastAPI and MongoDB.
+A modern veterinary management system API built with FastAPI, MongoDB, and Python.
 
-### 🎯 Features
+## 🚀 Production Deployment
 
-- 🚀 **FastAPI Framework**: High-performance, modern Python API framework
-- 🔐 **JWT Authentication**: Secure token-based authentication with refresh tokens
-- 📊 **MongoDB Integration**: NoSQL database with async operations
-- 🔍 **Auto-generated Documentation**: Interactive API docs at `/docs` and `/redoc`
-- 🛡️ **Input Validation**: Pydantic models for request/response validation
-- 🌐 **CORS Support**: Cross-origin resource sharing for frontend integration
-- ⚡ **Async Operations**: Non-blocking database operations for better performance
-- 🎯 **RESTful Design**: Clean, consistent API endpoints
-- 🔧 **Role-based Access**: Admin, veterinarian, and assistant roles
-- 📱 **Modern Response Format**: Consistent JSON responses with pagination
-- 🌱 **Database Seeding**: Automatic root user creation on startup
-- 🔒 **Environment Variables**: Secure configuration management
+The API is deployed on Render at: **https://dogtorvet-api.onrender.com**
 
-### 🚀 Quick Start
+### API Documentation
 
-#### Prerequisites
-- Python 3.8+
-- MongoDB Atlas account (or local MongoDB)
-- Git
+- **Interactive Docs**: https://dogtorvet-api.onrender.com/docs
+- **ReDoc**: https://dogtorvet-api.onrender.com/redoc
+- **Health Check**: https://dogtorvet-api.onrender.com/health
 
-#### Local Development
+### Environment Configuration
 
-1. **Clone and setup**
-   ```bash
-   git clone <repository-url>
-   cd FastAPI
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+The API automatically configures for production when deployed on Render:
+- **Database**: MongoDB Atlas (production cluster)
+- **Authentication**: JWT with secure tokens
+- **CORS**: Configured for production frontend
+- **Security**: HTTPS enforced, secure headers
 
-2. **Environment Configuration**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration:
-   ```
+## 🛠️ Development
 
-   ```env
-   # Required Environment Variables
-   MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/db
-   SECRET_KEY=your-super-secret-jwt-key
-   ROOT_USER_PASSWORD=your-admin-password
-   ```
+### Prerequisites
 
-3. **Run the application**
-   ```bash
-   python main.py
-   ```
+- Python 3.11+
+- MongoDB (local or Atlas)
+- pip
 
-4. **Access the API**
-   - **API**: http://localhost:8000
-   - **Swagger Docs**: http://localhost:8000/docs
-   - **ReDoc**: http://localhost:8000/redoc
-   - **Health Check**: http://localhost:8000/health
-
-### 🌱 Database Seeding
-
-The application automatically creates a root admin user on startup. You can also run the seeder manually:
+### Installation
 
 ```bash
-# Create root user
-python seed.py
-
-# Check if root user exists
-python seed.py --check
-
-# Reset root user password
-python seed.py --reset-password
+pip install -r requirements.txt
 ```
 
-**Default Root User:**
-- Email: `admin@dogtorvet.com`
-- Password: Set via `ROOT_USER_PASSWORD` environment variable
-- Role: `admin`
+### Development Server
 
-### 📚 API Endpoints
+```bash
+python main.py
+```
 
-#### Authentication
-- `POST /api/register` - Register new user
-- `POST /api/login` - User login
-- `POST /api/refresh` - Refresh access token
-- `POST /api/logout` - User logout
-- `GET /api/me` - Get current user info
+The API will be available at `http://localhost:8000`
 
-#### Core Entities
-- **Users**: `/api/users/*` (Admin management)
-- **Clients**: `/api/clients/*` (Pet owners)
-- **Pets**: `/api/pets/*` (Animal records)
-- **Species**: `/api/species/*` (Animal species)
-- **Breeds**: `/api/breeds/*` (Animal breeds)
-- **Services**: `/api/services/*` (Veterinary services)
-- **Products**: `/api/products/*` (Clinic products)
-- **Appointments**: `/api/appointments/*` (Scheduling)
-- **Invoices**: `/api/invoices/*` (Billing)
+### Environment Variables
 
-Full API documentation available at `/docs` when running.
-
-### 🚀 Production Deployment (Render)
-
-#### Automatic Deployment
-
-1. **Connect Repository**
-   - Link your GitHub repo to Render
-   - The `render.yaml` automatically configures deployment
-
-2. **Environment Variables**
-   - Render auto-generates secure values for `SECRET_KEY` and `ROOT_USER_PASSWORD`
-   - Update `MONGODB_URL` with your MongoDB Atlas connection string
-
-3. **Deploy**
-   - Push to main branch triggers automatic deployment
-   - Database seeding runs automatically on startup
-
-#### Manual Environment Setup
-
-Required environment variables:
+Create a `.env` file for local development:
 
 ```env
-# Database
-MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/db
-DATABASE_NAME=dogtorvet
-
-# Security (Render auto-generates these)
-SECRET_KEY=auto-generated-secure-key
-ROOT_USER_PASSWORD=auto-generated-secure-password
-
-# Application
-DEBUG=false
-ENVIRONMENT=production
-HOST=0.0.0.0
-PORT=8000
-
-# CORS
-ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend.onrender.com
+DATABASE_URL=mongodb://localhost:27017/dogtorvet
+SECRET_KEY=your-secret-key-here
+DEBUG=true
+ENVIRONMENT=development
 ```
 
-### 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
-FastAPI/
-├── 📄 main.py              # Application entry point with auto-seeding
-├── ⚙️ config.py            # Environment-based configuration
-├── 🗄️ database.py          # MongoDB async connection
-├── 📁 models/              # Pydantic data models
-│   ├── user.py
-│   ├── client.py
-│   ├── pet.py
-│   └── ...
-├── 📁 routes/              # API route handlers
-│   ├── auth.py
-│   ├── users.py
-│   ├── pets.py
-│   └── ...
-├── 📁 utils/               # Authentication & dependencies
-├── 📁 seeders/             # Database seeding
-│   ├── __init__.py
-│   └── root_user_seeder.py
-├── 📋 requirements.txt     # Python dependencies
-├── 🐳 Dockerfile           # Container configuration
-├── ☁️ render.yaml          # Render deployment config
-├── 📝 .env.example         # Environment template
-└── 📖 README.md           # This documentation
+app/
+├── api/           # API endpoints
+│   └── v1/       # Version 1 API routes
+├── core/          # Core configuration
+├── crud/          # Database operations
+├── db/            # Database connection
+├── models/        # Database models
+├── schemas/       # Pydantic schemas
+└── services/      # Business logic
 ```
 
-### 🔧 Development Workflow
+## 🎯 Features
 
-1. **Add New Entity**
-   ```bash
-   # 1. Create Pydantic model in models/
-   # 2. Create route handler in routes/
-   # 3. Register router in main.py
-   # 4. Test with auto-generated docs
-   ```
+- **RESTful API**: Complete CRUD operations
+- **Authentication**: JWT-based auth with refresh tokens
+- **Authorization**: Role-based access control
+- **Database**: MongoDB with Motor async driver
+- **Validation**: Pydantic schema validation
+- **Documentation**: Auto-generated OpenAPI docs
+- **CORS**: Cross-origin resource sharing
+- **Error Handling**: Comprehensive error responses
 
-2. **Environment Variables**
-   - Development: Use `.env` file
-   - Production: Set in Render dashboard or `render.yaml`
-   - Never commit sensitive values to Git
+## 🔧 Key Technologies
 
-3. **Database Operations**
-   - All operations are async using Motor (async MongoDB driver)
-   - Automatic connection management with lifespan events
-   - Built-in error handling and validation
+- **FastAPI** - Modern Python web framework
+- **MongoDB** - NoSQL database
+- **Motor** - Async MongoDB driver
+- **Pydantic** - Data validation
+- **JWT** - Authentication
+- **Uvicorn** - ASGI server
 
-### 🧪 Testing
+## 🔒 Security Features
 
-#### Using Interactive Docs
-1. Start the server: `python main.py`
-2. Open: http://localhost:8000/docs
-3. Authenticate using the root user credentials
-4. Test all endpoints interactively
+- JWT token authentication
+- Password hashing with bcrypt
+- CORS protection
+- Input validation
+- SQL injection prevention
+- XSS protection
+- Rate limiting ready
 
-#### API Testing Tools
-- **Swagger UI**: Built-in at `/docs`
-- **ReDoc**: Alternative docs at `/redoc`
-- **Postman**: Import OpenAPI spec from `/openapi.json`
-- **curl**: Command-line testing
-- **VS Code REST Client**: Use `.http` files
+## 📊 API Endpoints
 
-### 🔐 Security Features
+### Authentication
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh token
+- `POST /api/v1/auth/logout` - User logout
 
-- **JWT Authentication**: Secure token-based auth
-- **Password Hashing**: bcrypt with configurable rounds
-- **Environment Variables**: Sensitive data stored securely
-- **CORS Configuration**: Controlled cross-origin access
-- **Input Validation**: Pydantic model validation
-- **Role-based Access**: Admin/Vet/Assistant permissions
+### Core Entities
+- **Users**: `/api/v1/users`
+- **Clients**: `/api/v1/clients`
+- **Pets**: `/api/v1/pets`
+- **Appointments**: `/api/v1/appointments`
+- **Invoices**: `/api/v1/invoices`
+- **Services**: `/api/v1/services`
+- **Products**: `/api/v1/products`
 
-### 📈 Performance Features
+### Medical Records
+- **Allergies**: `/api/v1/allergies`
+- **Vaccinations**: `/api/v1/vaccinations`
+- **Species**: `/api/v1/species`
+- **Breeds**: `/api/v1/breeds`
 
-- **Async Operations**: Non-blocking database operations
-- **Connection Pooling**: MongoDB connection optimization
-- **Pagination**: Efficient data loading with skip/limit
-- **Caching**: Response optimization for static data
-- **Lightweight**: Minimal memory footprint for cloud hosting
+## 🚀 Performance
 
-### 🔄 Migration from Laravel
+- Async/await throughout
+- Database connection pooling
+- Optimized queries
+- Response caching ready
+- CDN integration ready
 
-This FastAPI backend provides identical functionality to the Laravel API:
+## 📈 Monitoring
 
-| Feature | Laravel | FastAPI | Status |
-|---------|---------|---------|--------|
-| Authentication | Passport OAuth2 | JWT | ✅ Complete |
-| Database | MySQL/PostgreSQL | MongoDB | ✅ Complete |
-| Models | Eloquent ORM | Pydantic | ✅ Complete |
-| Routes | 50+ endpoints | 50+ endpoints | ✅ Complete |
-| Validation | Form Requests | Pydantic | ✅ Complete |
-| Documentation | Manual | Auto-generated | ✅ Improved |
+- Health check endpoint
+- Structured logging
+- Error tracking
+- Performance metrics
+- Database monitoring
 
-### 🚨 Troubleshooting
+## 🔧 Deployment
 
-#### Common Issues
+### Render Configuration
 
-1. **MongoDB Connection Errors**
-   ```bash
-   # Check MONGODB_URL format
-   # Verify network access to MongoDB Atlas
-   # Ensure database user has proper permissions
-   ```
+The API is configured for automatic deployment on Render with:
+- Python environment
+- MongoDB Atlas connection
+- Environment variables
+- Health checks
+- Auto-scaling ready
 
-2. **Import Errors**
-   ```bash
-   # Activate virtual environment
-   source venv/bin/activate  # or venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+### Environment Variables
 
-3. **Environment Variables**
-   ```bash
-   # Copy example file
-   cp .env.example .env
-   # Edit with your values
-   ```
-
-#### Logging
-- Development: Detailed logs to console
-- Production: Structured logging for monitoring
-- Health check endpoint: `/health`
-
-### 🎉 Success Indicators
-
-✅ **Deployment Successful** when you see:
-```
-✅ Connected to MongoDB
-🎉 Root user 'admin@dogtorvet.com' created successfully!
-✅ Database seeding completed
-INFO: Started server process
-INFO: Uvicorn running on http://0.0.0.0:8000
-```
-
-✅ **API Working** when:
-- `/health` returns 200 OK
-- `/docs` shows interactive documentation
-- Authentication endpoints accept login requests
-- All CRUD operations work as expected
-
----
-
-**🚀 Ready for production deployment on Render with automatic scaling and MongoDB Atlas integration!** 
+Production environment variables are configured in `render.yaml`:
+- Database connection
+- Security keys
+- CORS origins
+- Admin user setup 

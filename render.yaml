@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: dogtorvet-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: DATABASE_URL
+        value: mongodb+srv://dogtorvetservices:6MotTn1RO4O764IL@dogtorvetdata.re8rk.mongodb.net/dogtorvet
+      - key: DATABASE_NAME
+        value: dogtorvet
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates secure secret
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 240
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: APP_NAME
+        value: DogTorVet API
+      - key: APP_VERSION
+        value: 2.0.0
+      - key: DEBUG
+        value: false
+      - key: ENVIRONMENT
+        value: production
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: UPLOAD_FOLDER
+        value: uploads
+      # Admin User Configuration
+      - key: ADMIN_EMAIL
+        value: admin@dogtorvet.com
+      - key: ADMIN_PASSWORD
+        generateValue: true  # Render auto-generates secure password
+      - key: ADMIN_FIRST_NAME
+        value: System
+      - key: ADMIN_LAST_NAME
+        value: Administrator
+      # Server Configuration
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PORT
+        value: "8000"
+      # CORS Configuration
+      - key: ALLOWED_ORIGINS
+        value: "http://localhost:3000,http://localhost:5173,https://dogtorvetservices.onrender.com,https://dogtorvet-ui.onrender.com" 

@@ -2,124 +2,124 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
+import logging
 
-from config import settings
-from database import connect_to_mongo, close_mongo_connection, is_mongodb_available, get_database
-from seeders.root_user_seeder import seed_root_user
-from database_indexes import create_indexes
-from utils.logging import logger
-from routes import (
-    auth_router, users_router, clients_router, species_router, 
-    breeds_router, pets_router, services_router, products_router, 
-    appointments_router, invoices_router, invoice_items_router, analytics_router,
-    allergies_router, vaccinations_router, audit_logs_router
-)
+from app.core.config import settings
+from app.db.database import database
+from app.api.v1 import api_router
+from app.schemas.user import UserCreate, UserRole
+from app.crud import user_crud
+from app.db.database import COLLECTIONS
 
-# ✅ Lifespan setup
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting DogTorVet API...")
-    await connect_to_mongo()
-
-    if is_mongodb_available():
-        logger.success("Connected to MongoDB")
+    """FastAPI lifespan events."""
+    logger.info("🚀 Starting DogTorVet API v2.0...")
+    
+    # Connect to database (with retry logic)
+    await database.connect()
+    
+    # Only proceed with database operations if connected
+    if database.is_connected():
+        logger.info("✅ Database connected - proceeding with admin user setup")
         try:
-            db = get_database()
-            await create_indexes(db)
-            logger.success("Database indexes created")
+            collection = database.get_collection(COLLECTIONS["users"])
+            
+            # Check if admin user exists
+            admin_user = await user_crud.get_by_email(collection, settings.admin_email)
+            
+            if admin_user is None:
+                logger.info("Creating admin user...")
+                admin_create = UserCreate(
+                    first_name=settings.admin_first_name,
+                    last_name=settings.admin_last_name,
+                    email=settings.admin_email,
+                    password=settings.admin_password,
+                    role=UserRole.ADMIN
+                )
+                await user_crud.create(collection, admin_create)
+                logger.info("✅ Admin user created successfully")
+            else:
+                logger.info("✅ Admin user already exists")
         except Exception as e:
-            logger.warning(f"Index creation error (non-critical): {str(e)}")
-        try:
-            await seed_root_user()
-            logger.success("Root user seeding completed")
-        except Exception as e:
-            logger.warning(f"Seeding error (non-critical): {str(e)}")
+            logger.error(f"❌ Error setting up admin user: {e}")
     else:
-        logger.error("MongoDB not available - API will run with limited functionality")
-
+        logger.warning("⚠️ Database not connected - skipping admin user setup")
+        logger.info("📚 API documentation will still be available at /docs")
+    
     yield
+    
+    # Disconnect from database
+    await database.disconnect()
+    logger.info("👋 DogTorVet API v2.0 shutdown complete")
 
-    logger.info("Shutting down DogTorVet API...")
-    await close_mongo_connection()
-    if is_mongodb_available():
-        logger.success("Disconnected from MongoDB")
 
-# ✅ Create FastAPI app early
+# Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="DogTorVet Veterinary Management System API",
+    description=settings.description,
     lifespan=lifespan
 )
 
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://dogtorvetservices.onrender.com",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
-# ✅ Global exception handler AFTER app is created
+
+# Include API router
+app.include_router(api_router, prefix="/api/v1")
+
+# Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    if settings.debug:
-        raise exc
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    logger.error(f"Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "message": "Internal server error",
+            "errors": [str(exc)] if settings.debug else ["Internal server error"]
+        }
+    )
 
-# ✅ Middleware
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-
-# ✅ Routes
-app.include_router(auth_router, prefix="/api")
-app.include_router(users_router, prefix="/api")
-app.include_router(clients_router, prefix="/api")
-app.include_router(species_router, prefix="/api")
-app.include_router(breeds_router, prefix="/api")
-app.include_router(pets_router, prefix="/api")
-app.include_router(services_router, prefix="/api")
-app.include_router(products_router, prefix="/api")
-app.include_router(appointments_router, prefix="/api")
-app.include_router(invoices_router, prefix="/api")
-app.include_router(invoice_items_router, prefix="/api")
-app.include_router(analytics_router, prefix="/api")
-app.include_router(allergies_router, prefix="/api")
-app.include_router(vaccinations_router, prefix="/api")
-app.include_router(audit_logs_router, prefix="/api")
-
-# ✅ Health check routes
+# Health check endpoints
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to DogTorVet API",
+        "message": "Welcome to DogTorVet API v2.0",
         "version": settings.app_version,
         "docs": "/docs",
         "redoc": "/redoc",
-        "mongodb_status": "connected" if is_mongodb_available() else "disconnected"
+        "database_status": "connected" if database.is_connected() else "disconnected"
     }
 
 @app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
-        "message": "DogTorVet API is running",
+        "message": "DogTorVet API v2.0 is running",
         "version": settings.app_version,
-        "mongodb_available": is_mongodb_available(),
+        "database_connected": database.is_connected(),
         "environment": settings.environment
     }
 
-# ✅ Local dev entrypoint
+# Run the application
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host=settings.host, port=settings.port, reload=settings.debug)
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug
+    ) 
